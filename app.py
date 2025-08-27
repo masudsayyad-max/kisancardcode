@@ -75,15 +75,39 @@ FONTS_DIR  = os.path.join("static", "fonts")
 FRONT_TEMPLATE = os.path.join(IMAGES_DIR, "1.jpg")
 BACK_TEMPLATE  = os.path.join(IMAGES_DIR, "2.jpg")
 
-# Preferred Marathi font (Mangal)
-MANGAL_REGULAR_TTF = os.path.join(FONTS_DIR, "mangalregular.ttf")
-MANGAL_BOLD_TTF    = os.path.join(FONTS_DIR, "mangalbold.ttf")  # optional, only if you add it
+# Preferred Marathi font (Mangal) - support common filename variants
+MANGAL_REGULAR_CANDIDATES = [
+    os.path.join(FONTS_DIR, "mangalregular.ttf"),
+    os.path.join(FONTS_DIR, "Mangal Regular.ttf"),
+    os.path.join(FONTS_DIR, "Mangal.ttf"),
+]
+MANGAL_BOLD_CANDIDATES = [
+    os.path.join(FONTS_DIR, "mangalbold.ttf"),
+    os.path.join(FONTS_DIR, "Mangal Bold.ttf"),
+]
 
-# Fallback Devanagari font
-DEVANAGARI_TTF = os.path.join(FONTS_DIR, "NotoSansDevanagari-Regular.ttf")
-DEVANAGARI_BOLD_TTF = os.path.join(FONTS_DIR, "NotoSansDevanagari-Bold.ttf")
+# Fallback Devanagari font (Noto) - common filename variants
+DEVANAGARI_REGULAR_CANDIDATES = [
+    os.path.join(FONTS_DIR, "NotoSansDevanagari-Regular.ttf"),
+    os.path.join(FONTS_DIR, "Noto Sans Devanagari Regular.ttf"),
+]
+DEVANAGARI_BOLD_CANDIDATES = [
+    os.path.join(FONTS_DIR, "NotoSansDevanagari-Bold.ttf"),
+    os.path.join(FONTS_DIR, "Noto Sans Devanagari Bold.ttf"),
+]
 
-HAS_MANGAL_BOLD = os.path.exists(MANGAL_BOLD_TTF)
+def _first_existing(paths):
+    for p in paths:
+        if os.path.exists(p):
+            return p
+    return None
+
+MANGAL_REGULAR_TTF = _first_existing(MANGAL_REGULAR_CANDIDATES)
+MANGAL_BOLD_TTF = _first_existing(MANGAL_BOLD_CANDIDATES)
+DEVANAGARI_TTF = _first_existing(DEVANAGARI_REGULAR_CANDIDATES)
+DEVANAGARI_BOLD_TTF = _first_existing(DEVANAGARI_BOLD_CANDIDATES)
+
+HAS_MANGAL_BOLD = MANGAL_BOLD_TTF is not None
 
 # Pillow complex text layout (RAQM) support detection
 # When available, this fixes Devanagari shaping/ligatures for Marathi text
@@ -97,7 +121,11 @@ def _truetype_with_layout(path: str, size: int):
     """
     try:
         if RAQM_AVAILABLE:
-            return ImageFont.truetype(path, size, layout_engine=ImageFont.LAYOUT_RAQM)
+            try:
+                return ImageFont.truetype(path, size, layout_engine=ImageFont.LAYOUT_RAQM)
+            except Exception:
+                # If RAQM is not actually usable, fall back to BASIC engine
+                return ImageFont.truetype(path, size)
         return ImageFont.truetype(path, size)
     except Exception:
         return None
@@ -157,11 +185,16 @@ def draw_text_bold(draw: ImageDraw.ImageDraw, xy, text, font, fill):
 
     # Extra shaping hints for Devanagari when RAQM is present
     text_kwargs = {}
-    if RAQM_AVAILABLE and _contains_devanagari(text):
+    if _contains_devanagari(text):
         # Enable common OpenType features and specify Marathi language tag
         text_kwargs = {
             "language": "mr",
-            "features": ["kern", "liga", "clig", "calt"],
+            # Include key Indic shaping features to help engines that support them
+            "features": [
+                "kern", "liga", "clig", "calt",
+                "akhn", "rphf", "pref", "blwf", "half", "pstf", "vatu"
+            ],
+            "direction": "ltr",
         }
 
     if HAS_MANGAL_BOLD:
