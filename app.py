@@ -4,6 +4,7 @@ from flask_mail import Mail, Message
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 from PIL import Image, ImageDraw, ImageFont, ImageOps
+import unicodedata
 from fpdf import FPDF
 import io
 import os
@@ -74,15 +75,60 @@ FONTS_DIR  = os.path.join("static", "fonts")
 FRONT_TEMPLATE = os.path.join(IMAGES_DIR, "1.jpg")
 BACK_TEMPLATE  = os.path.join(IMAGES_DIR, "2.jpg")
 
-# Preferred Marathi font (Mangal)
-MANGAL_REGULAR_TTF = os.path.join(FONTS_DIR, "mangalregular.ttf")
-MANGAL_BOLD_TTF    = os.path.join(FONTS_DIR, "mangalbold.ttf")  # optional, only if you add it
+# Preferred Marathi font (Mangal) - support common filename variants
+MANGAL_REGULAR_CANDIDATES = [
+    os.path.join(FONTS_DIR, "mangalregular.ttf"),
+    os.path.join(FONTS_DIR, "Mangal Regular.ttf"),
+    os.path.join(FONTS_DIR, "Mangal.ttf"),
+]
+MANGAL_BOLD_CANDIDATES = [
+    os.path.join(FONTS_DIR, "mangalbold.ttf"),
+    os.path.join(FONTS_DIR, "Mangal Bold.ttf"),
+]
 
-# Fallback Devanagari font
-DEVANAGARI_TTF = os.path.join(FONTS_DIR, "NotoSansDevanagari-Regular.ttf")
-DEVANAGARI_BOLD_TTF = os.path.join(FONTS_DIR, "NotoSansDevanagari-Bold.ttf")
+# Fallback Devanagari font (Noto) - common filename variants
+DEVANAGARI_REGULAR_CANDIDATES = [
+    os.path.join(FONTS_DIR, "NotoSansDevanagari-Regular.ttf"),
+    os.path.join(FONTS_DIR, "Noto Sans Devanagari Regular.ttf"),
+]
+DEVANAGARI_BOLD_CANDIDATES = [
+    os.path.join(FONTS_DIR, "NotoSansDevanagari-Bold.ttf"),
+    os.path.join(FONTS_DIR, "Noto Sans Devanagari Bold.ttf"),
+]
 
-HAS_MANGAL_BOLD = os.path.exists(MANGAL_BOLD_TTF)
+def _first_existing(paths):
+    for p in paths:
+        if os.path.exists(p):
+            return p
+    return None
+
+MANGAL_REGULAR_TTF = _first_existing(MANGAL_REGULAR_CANDIDATES)
+MANGAL_BOLD_TTF = _first_existing(MANGAL_BOLD_CANDIDATES)
+DEVANAGARI_TTF = _first_existing(DEVANAGARI_REGULAR_CANDIDATES)
+DEVANAGARI_BOLD_TTF = _first_existing(DEVANAGARI_BOLD_CANDIDATES)
+
+HAS_MANGAL_BOLD = MANGAL_BOLD_TTF is not None
+
+# Pillow complex text layout (RAQM) support detection
+# When available, this fixes Devanagari shaping/ligatures for Marathi text
+RAQM_AVAILABLE = hasattr(ImageFont, "LAYOUT_RAQM")
+
+def _truetype_with_layout(path: str, size: int):
+    """
+    Load a TrueType font using RAQM layout engine when available
+    so that Devanagari scripts (Marathi) render correctly.
+    Returns None if loading fails.
+    """
+    try:
+        if RAQM_AVAILABLE:
+            try:
+                return ImageFont.truetype(path, size, layout_engine=ImageFont.LAYOUT_RAQM)
+            except Exception:
+                # If RAQM is not actually usable, fall back to BASIC engine
+                return ImageFont.truetype(path, size)
+        return ImageFont.truetype(path, size)
+    except Exception:
+        return None
 
 # ---------------- Font Helper ----------------
 def get_pillow_font(size: int, bold: bool = False):
@@ -95,30 +141,35 @@ def get_pillow_font(size: int, bold: bool = False):
     - Default PIL font
     """
     # Prefer Mangal
-    try:
-        if bold and os.path.exists(MANGAL_BOLD_TTF):
-            return ImageFont.truetype(MANGAL_BOLD_TTF, size)
-        if os.path.exists(MANGAL_REGULAR_TTF):
-            return ImageFont.truetype(MANGAL_REGULAR_TTF, size)
-    except Exception:
-        pass
+    if bold and os.path.exists(MANGAL_BOLD_TTF):
+        f = _truetype_with_layout(MANGAL_BOLD_TTF, size)
+        if f:
+            return f
+    if os.path.exists(MANGAL_REGULAR_TTF):
+        f = _truetype_with_layout(MANGAL_REGULAR_TTF, size)
+        if f:
+            return f
 
     # Fallback to Noto
-    try:
-        if bold and os.path.exists(DEVANAGARI_BOLD_TTF):
-            return ImageFont.truetype(DEVANAGARI_BOLD_TTF, size)
-        if os.path.exists(DEVANAGARI_TTF):
-            return ImageFont.truetype(DEVANAGARI_TTF, size)
-    except Exception:
-        pass
+    if bold and os.path.exists(DEVANAGARI_BOLD_TTF):
+        f = _truetype_with_layout(DEVANAGARI_BOLD_TTF, size)
+        if f:
+            return f
+    if os.path.exists(DEVANAGARI_TTF):
+        f = _truetype_with_layout(DEVANAGARI_TTF, size)
+        if f:
+            return f
 
     # Fallback to Arial
     try:
         if bold:
-            return ImageFont.truetype("arialbd.ttf", size)
-        return ImageFont.truetype("arial.ttf", size)
+            return _truetype_with_layout("arialbd.ttf", size) or ImageFont.truetype("arialbd.ttf", size)
+        return _truetype_with_layout("arial.ttf", size) or ImageFont.truetype("arial.ttf", size)
     except Exception:
         return ImageFont.load_default()
+
+def _contains_devanagari(text: str) -> bool:
+    return any('\u0900' <= ch <= '\u097F' for ch in text)
 
 def draw_text_bold(draw: ImageDraw.ImageDraw, xy, text, font, fill):
     """
@@ -126,16 +177,36 @@ def draw_text_bold(draw: ImageDraw.ImageDraw, xy, text, font, fill):
     If a real bold font is not present (e.g., only mangalregular.ttf),
     emulate bold by drawing multiple overlapped passes.
     """
+    # Normalize to NFC to avoid split matras/nukta ordering issues
+    if text is None:
+        text = ""
+    else:
+        text = unicodedata.normalize('NFC', text)
+
+    # Extra shaping hints for Devanagari when RAQM is present
+    text_kwargs = {}
+    if _contains_devanagari(text):
+        # Enable common OpenType features and specify Marathi language tag
+        text_kwargs = {
+            "language": "mr",
+            # Include key Indic shaping features to help engines that support them
+            "features": [
+                "kern", "liga", "clig", "calt",
+                "akhn", "rphf", "pref", "blwf", "half", "pstf", "vatu"
+            ],
+            "direction": "ltr",
+        }
+
     if HAS_MANGAL_BOLD:
         # Real bold loaded by get_pillow_font if available; one pass is enough
-        draw.text(xy, text, font=font, fill=fill)
+        draw.text(xy, text, font=font, fill=fill, **text_kwargs)
         return
 
     # Emulate bold by drawing with small offsets
     x, y = xy
     offsets = [(0,0), (1,0), (0,1), (1,1)]
     for dx, dy in offsets:
-        draw.text((x + dx, y + dy), text, font=font, fill=fill)
+        draw.text((x + dx, y + dy), text, font=font, fill=fill, **text_kwargs)
 
 # ---------------- Utility ----------------
 def find_latest_user_photo(user_id: int):
