@@ -1,0 +1,47 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String?
+  contact   String?
+  email     String   @unique
+  password  String
+  wallet    Int      @default(0)
+  is_admin  Boolean  @default(false)
+  payments  Payment[]
+  cards     Card[]
+}
+
+model Payment {
+  id      Int     @id @default(autoincrement())
+  user_id Int
+  user    User    @relation(fields: [user_id], references: [id])
+  date    String  @default("Today")
+  amount  Int
+  utr     String?
+  status  String  @default("Pending")
+  note    String?
+}
+
+model Card {
+  id          Int     @id @default(autoincrement())
+  user_id     Int
+  user        User    @relation(fields: [user_id], references: [id])
+  farmer_id   String?
+  name_en     String?
+  name_mr     String?
+  dob         String?
+  gender      String?
+  mobile      String?
+  aadhaar     String?
+  address_en  String?
+  address_mr  String?
+}
+
