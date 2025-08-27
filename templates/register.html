@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgriStack Sign Up</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f4f8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .signup-container {
+            background: #fff;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            width: 350px;
+        }
+        .signup-container h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #0c7a3c;
+        }
+        .signup-container label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .signup-container input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+        }
+        .signup-container button {
+            width: 100%;
+            padding: 12px;
+            background-color: #0c7a3c;
+            color: #fff;
+            font-size: 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .signup-container button:hover {
+            background-color: #095a2c;
+        }
+        .signup-container .signin-link {
+            text-align: center;
+            margin-top: 15px;
+        }
+        .signup-container .signin-link a {
+            color: #0c7a3c;
+            text-decoration: none;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="signup-container">
+        <h2>AgriStack Sign Up</h2>
+        <form action="{{ url_for('register') }}" method="POST">
+            <label for="username">Username</label>
+            <input type="text" name="username" id="username" required>
+
+            <label for="email">Email</label>
+            <input type="email" name="email" id="email" required>
+
+            <label for="phone">Phone</label>
+            <input type="text" name="phone" id="phone">
+
+            <label for="password">Password</label>
+            <input type="password" name="password" id="password" required>
+
+            <label for="confirm_password">Confirm Password</label>
+            <input type="password" name="confirm_password" id="confirm_password" required>
+
+            <button type="submit">Sign Up</button>
+        </form>
+        <div class="signin-link">
+            Already have an account? <a href="{{ url_for('login') }}">Sign In</a>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        h1 {
+            color: #333;
+            display: inline-block;
+        }
+        .logout {
+            float: right;
+            background: #f44336;
+            color: white;
+            padding: 8px 15px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .logout:hover {
+            background: #d32f2f;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        .approve {
+            color: green;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .reject {
+            color: red;
+            text-decoration: none;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Admin - Payment Requests</h1>
+    <a href="{{ url_for('admin_logout') }}" class="logout">🚪 Logout</a>
+
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>User</th>
+            <th>Amount</th>
+            <th>UTR / Transaction ID</th>
+            <th>Status</th>
+            <th>Note</th>
+            <th>Actions</th>
+        </tr>
+        {% for p in payments %}
+        <tr>
+            <td>{{ p.id }}</td>
+            <td>{{ p.user.name }}</td>
+            <td>₹{{ p.amount }}</td>
+            <td>{{ p.utr }}</td>
+            <td>{{ p.status }}</td>
+            <td>{{ p.note }}</td>
+            <td>
+                {% if p.status == "Pending" %}
+                    <a href="/update_payment/{{ p.id }}/approve" class="approve">✅ Approve</a> |
+                    <a href="/update_payment/{{ p.id }}/reject" class="reject">❌ Reject</a>
+                {% else %}
+                    {{ p.status }}
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>

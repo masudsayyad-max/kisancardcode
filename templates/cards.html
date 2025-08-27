@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>My Cards - AgriStack</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: #f4f6f9;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 220px;
+      height: 100%;
+      background: #2c3e50;
+      color: white;
+      padding-top: 20px;
+    }
+    .sidebar h2 {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .sidebar a {
+      display: block;
+      color: white;
+      padding: 12px 20px;
+      text-decoration: none;
+      transition: background 0.3s;
+    }
+    .sidebar a:hover, .sidebar a.active {
+      background: #1abc9c;
+    }
+
+    /* Main content */
+    .main {
+      margin-left: 220px;
+      padding: 20px;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+      color: #2c3e50;
+    }
+
+    /* Search bar */
+    .search-container {
+      margin-bottom: 20px;
+    }
+    input[type="text"] {
+      width: 300px;
+      padding: 10px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    button.search-btn {
+      padding: 10px 20px;
+      font-size: 16px;
+      background: #1abc9c;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button.search-btn:hover {
+      background: #16a085;
+    }
+
+    /* Cards table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    th, td {
+      padding: 15px;
+      text-align: left;
+      font-size: 16px;
+    }
+    th {
+      background: #1abc9c;
+      color: white;
+    }
+    tr:nth-child(even) {
+      background: #f9f9f9;
+    }
+
+    /* Download buttons */
+    .btn {
+      background: #1abc9c;
+      color: white;
+      padding: 6px 12px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+      margin: 2px;
+      display: inline-block;
+      text-decoration: none;
+    }
+    .btn:hover {
+      background: #16a085;
+    }
+
+    .no-cards {
+      font-size: 18px;
+      color: #555;
+      margin-top: 20px;
+    }
+
+    /* Responsive */
+    @media screen and (max-width: 768px) {
+      .main {
+        margin-left: 0;
+      }
+      .sidebar {
+        position: relative;
+        width: 100%;
+        height: auto;
+      }
+      table, th, td {
+        font-size: 14px;
+      }
+      input[type="text"] {
+        width: 100%;
+        margin-bottom: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="sidebar">
+    <h2>AgriStack</h2>
+    <a href="{{ url_for('dashboard') }}">Dashboard</a>
+    <a href="{{ url_for('mypayments') }}">My Payments</a>
+    <a href="{{ url_for('recharge') }}">Recharge</a>
+    <a href="{{ url_for('cards') }}" class="active">My Cards</a>
+    <a href="{{ url_for('logout') }}">Sign Out</a>
+  </div>
+
+  <div class="main">
+    <h1>My Cards</h1>
+
+    <div class="search-container">
+      <form method="get" action="{{ url_for('cards') }}">
+        <input type="text" name="search" placeholder="Search by Aadhaar or Farmer ID" value="{{ request.args.get('search','') }}">
+        <button class="search-btn" type="submit">Search</button>
+      </form>
+    </div>
+
+    {% if cards %}
+    <table>
+      <tr>
+        <th>#</th>
+        <th>Name</th>
+        <th>Farmer ID</th>
+        <th>Aadhaar</th>
+        <th>Actions</th>
+      </tr>
+      {% for card in cards %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>{{ card.name_en }}</td>
+        <td>{{ card.farmer_id }}</td>
+        <td>{{ card.aadhaar }}</td>
+        <td>
+          <a class="btn" href="{{ url_for('preview_card', card_id=card.id) }}">👁️ Preview</a>
+          <a class="btn" href="{{ url_for('download_pdf', card_id=card.id) }}">📄 PDF</a>
+          <a class="btn" href="{{ url_for('download_jpg', card_id=card.id, side='front') }}">🖼 Front</a>
+          <a class="btn" href="{{ url_for('download_jpg', card_id=card.id, side='back') }}">🖼 Back</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% else %}
+    <div class="no-cards">No cards found.</div>
+    {% endif %}
+
+  </div>
+
+</body>
+</html>

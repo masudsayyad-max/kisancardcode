@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AgriStack Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <style>
+    body {
+      display: flex;
+      font-family: Arial, sans-serif;
+      background: #f7f7f7;
+    }
+    .sidebar {
+      width: 250px;
+      height: 100vh;
+      background: #2e7d32;
+      color: white;
+      padding: 20px;
+      position: fixed;
+    }
+    .sidebar h2 {
+      margin-bottom: 30px;
+    }
+    .sidebar a {
+      display: block;
+      color: white;
+      text-decoration: none;
+      margin: 10px 0;
+      padding: 8px;
+      border-radius: 6px;
+    }
+    .sidebar a:hover {
+      background: #1b5e20;
+    }
+    .main-content {
+      margin-left: 260px;
+      padding: 20px;
+      flex: 1;
+    }
+    .wallet {
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0px 2px 5px rgba(0,0,0,0.1);
+    }
+    .notice {
+      background: #fff3cd;
+      border: 1px solid #ffeeba;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-weight: bold;
+    }
+    .form-card {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0px 2px 5px rgba(0,0,0,0.1);
+    }
+    .upload-box {
+      border: 2px dashed #ccc;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <h2>AgriStack</h2>
+    <a href="{{ url_for('dashboard') }}">Dashboard</a>
+    <a href="{{ url_for('mypayments') }}">My Payments</a>
+    <a href="{{ url_for('recharge') }}">Recharge</a>
+    <a href="{{ url_for('cards') }}">My Cards</a>
+    <a href="{{ url_for('logout') }}">Sign Out</a>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <!-- Wallet -->
+    <div class="wallet">
+      <span><strong>{{ user.name }}</strong></span>
+      <span>🪙 Wallet Balance: ₹{{ balance }}</span>
+    </div>
+
+    <!-- Notice -->
+    <div class="notice">
+      शेतकरी ओळखपत्रासाठी महत्वाची सूचना <br>
+      कृपया प्रथम वॉलेट ला रिचार्ज केल्यानंतरच शेतकरी ओळखपत्र तयार करता येईल
+      <br><br>
+      <a href="{{ url_for('recharge') }}" class="btn btn-warning">रिचार्ज करा</a>
+    </div>
+
+    <!-- Farmer Form -->
+    <div class="form-card">
+      <h4>शेतकरी ओळखपत्र फॉर्म / Farmer ID Form</h4>
+      <form method="POST" action="{{ url_for('submit_card') }}" enctype="multipart/form-data">
+        
+        <!-- Upload -->
+        <div class="upload-box">
+          <label for="photo">Upload Photo</label><br>
+          <input type="file" name="photo" id="photo" accept="image/*">
+        </div>
+
+        <!-- Fields -->
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label>Name (English)*</label>
+            <input type="text" name="name_en" class="form-control" required>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label>मोबाइल नं / Mobile Number*</label>
+            <input type="text" name="mobile" class="form-control" required>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label>नाव (मराठी)*</label>
+            <input type="text" name="name_mr" class="form-control" required>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label>आधार नं / Aadhaar Number*</label>
+            <input type="text" name="aadhaar" class="form-control" required>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label>जन्मतारीख / Date of Birth</label>
+            <input type="date" name="dob" class="form-control">
+          </div>
+          <div class="col-md-6 mb-3">
+            <label>शेतकरी आयडी / Farmer ID*</label>
+            <input type="text" name="farmer_id" class="form-control" required>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label>लिंग / Gender</label>
+            <select name="gender" class="form-control">
+              <option>Select Gender</option>
+              <option value="Male">पुरुष / Male</option>
+              <option value="Female">महिला / Female</option>
+              <option value="Other">इतर / Other</option>
+            </select>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label>Address (English)</label>
+            <input type="text" name="address_en" class="form-control">
+          </div>
+          <div class="col-md-6 mb-3">
+            <label>पत्ता (मराठी)</label>
+            <input type="text" name="address_mr" class="form-control">
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-success">Submit</button>
+      </form>
+    </div>
+  </div>
+
+</body>
+</html>
