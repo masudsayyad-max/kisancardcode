@@ -4,6 +4,7 @@ from flask_mail import Mail, Message
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 from PIL import Image, ImageDraw, ImageFont, ImageOps
+import unicodedata
 from fpdf import FPDF
 import io
 import os
@@ -148,6 +149,12 @@ def draw_text_bold(draw: ImageDraw.ImageDraw, xy, text, font, fill):
     If a real bold font is not present (e.g., only mangalregular.ttf),
     emulate bold by drawing multiple overlapped passes.
     """
+    # Normalize to NFC to avoid split matras/nukta ordering issues
+    if text is None:
+        text = ""
+    else:
+        text = unicodedata.normalize('NFC', text)
+
     # Extra shaping hints for Devanagari when RAQM is present
     text_kwargs = {}
     if RAQM_AVAILABLE and _contains_devanagari(text):
